@@ -203,6 +203,7 @@ select.input-celda { width: 165px; text-align: left; font-family: inherit; }
 }
 
 .ecuacion {
+  grid-column: 1 / -1; align-self: start;
   display: flex; gap: 14px; align-items: center; justify-content: center; flex-wrap: wrap;
   font-family: var(--mono); font-size: .95rem; padding: 16px; margin-bottom: 20px;
   border-radius: var(--radius); border: 1px solid var(--border); background: var(--panel);
@@ -220,14 +221,14 @@ select.input-celda { width: 165px; text-align: left; font-family: inherit; }
   background: var(--panel); border: 1px solid var(--border); border-left: 4px solid var(--border);
   border-radius: var(--radius); padding: 14px 16px;
 }
-.indice.bueno { border-left-color: var(--good); }
-.indice.alerta { border-left-color: var(--warn); }
-.indice.critico { border-left-color: var(--bad); }
+.indice.est-bueno { border-left-color: var(--good); }
+.indice.est-alerta { border-left-color: var(--warn); }
+.indice.est-critico { border-left-color: var(--bad); }
 .indice-nombre { font-size: .84rem; font-weight: 700; }
 .indice-valor { font-family: var(--mono); font-size: 1.4rem; font-weight: 800; margin: 7px 0 4px; }
-.indice.bueno .indice-valor { color: var(--good); }
-.indice.alerta .indice-valor { color: var(--warn); }
-.indice.critico .indice-valor { color: var(--bad); }
+.indice.est-bueno .indice-valor { color: var(--good); }
+.indice.est-alerta .indice-valor { color: var(--warn); }
+.indice.est-critico .indice-valor { color: var(--bad); }
 .indice-formula { font-family: var(--mono); font-size: .7rem; color: var(--text-dim); margin-bottom: 6px; }
 .indice-desc { font-size: .77rem; color: var(--text-dim); }
 

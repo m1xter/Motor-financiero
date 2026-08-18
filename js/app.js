@@ -300,6 +300,8 @@ const App = (() => {
         <div class="linea subtotal"><span>TOTAL PASIVO</span><span>${formato(b.pasivoTotal)}</span></div>
         <div class="grupo-titulo">Patrimonio</div>
         ${ordenar(b.listas.patLista).map(c => linea(c)).join('')}
+        ${b.depreciacionAnterior > 0
+          ? `<div class="linea contra"><span>Depreciación de ejercicios anteriores</span><span>(${formato(b.depreciacionAnterior)})</span></div>` : ''}
         ${v.incluirUtilidad ? `<div class="linea"><span>Resultado del ejercicio</span><span>${formato(state.estados.resultados.utilidadNeta)}</span></div>` : ''}
         <div class="linea subtotal"><span>Total Patrimonio</span><span>${formato(b.patrimonio)}</span></div>
         <div class="linea total"><span>TOTAL PASIVO + PATRIMONIO</span><span>${formato(b.pasivoMasPatrimonio)}</span></div>
@@ -342,7 +344,7 @@ const App = (() => {
         <h3><span>${g.icono}</span> Razones de ${g.nombre}</h3>
         <div class="indice-grid">
           ${g.indicadores.map(i => `
-            <div class="indice ${i.estado}">
+            <div class="indice est-${i.estado}">
               <div class="indice-nombre">${i.nombre}</div>
               <div class="indice-valor">${valorIndicador(i)}</div>
               <div class="indice-formula">${i.formula}</div>
