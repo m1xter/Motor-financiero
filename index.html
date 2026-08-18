@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Motor de Análisis Financiero y Predicción de Riesgo</title>
+  <meta name="description" content="Motor computacional que estructura estados financieros desde un CSV, calcula razones financieras y predice el riesgo de crédito mediante análisis discriminante.">
+  <link rel="stylesheet" href="styles.css?v=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">Σ</div>
+    <div>
+      <h1>Motor de Análisis Financiero</h1>
+      <p>Estructuración contable · Razones financieras · Análisis discriminante de crédito</p>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <button id="btn-cargar" class="btn btn-primary">Cargar CSV</button>
+    <select id="sel-demo" class="btn" title="Cargar un juego de datos de ejemplo">
+      <option value="">Datos de ejemplo…</option>
+      <option value="solida">Empresa sólida (crédito excelente)</option>
+      <option value="intermedia">Empresa intermedia (riesgo normal)</option>
+      <option value="riesgo">Empresa en riesgo (crédito malo)</option>
+      <option value="desordenado">CSV desordenado con descuadre</option>
+    </select>
+    <button id="btn-exportar" class="btn" disabled>Exportar informe</button>
+    <button id="btn-tema" class="btn btn-icon" title="Cambiar tema">◐</button>
+    <input type="file" id="input-csv" accept=".csv,.txt,text/csv" hidden>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ============ ZONA DE CARGA ============ -->
+  <section id="zona-carga" class="dropzone">
+    <div class="dropzone-inner">
+      <div class="dropzone-icon">⇪</div>
+      <h2>Cargue el archivo CSV de cuentas contables</h2>
+      <p>Arrastre el archivo aquí o presione <strong>Cargar CSV</strong>. El motor acepta listados desordenados,
+         separadores <code>, ; | tab</code> y montos en formato <code>1.234.567,89</code> o <code>1,234,567.89</code>.</p>
+      <div class="dropzone-schema">
+        <span class="chip">Cuenta <em>(requerida)</em></span>
+        <span class="chip">Saldo <em>(requerida)</em></span>
+        <span class="chip">Categoría <em>(opcional)</em></span>
+        <span class="chip">Vida útil <em>(opcional)</em></span>
+        <span class="chip">Valor residual <em>(opcional)</em></span>
+        <span class="chip">Años de uso <em>(opcional)</em></span>
+      </div>
+      <p class="muted small">Plantillas: <a href="data/ejemplo_balance.csv" download>empresa sólida</a> ·
+        <a href="data/ejemplo_intermedia.csv" download>empresa intermedia</a> ·
+        <a href="data/ejemplo_riesgo.csv" download>empresa en riesgo</a> ·
+        <a href="data/ejemplo_desordenado.csv" download>CSV desordenado con descuadre</a></p>
+    </div>
+  </section>
+
+  <!-- ============ PANEL DE ALERTAS ============ -->
+  <section id="alertas" class="alertas hidden"></section>
+
+  <!-- ============ RESUMEN EJECUTIVO ============ -->
+  <section id="resumen" class="kpi-grid hidden"></section>
+
+  <!-- ============ NAVEGACIÓN ============ -->
+  <nav id="tabs" class="tabs hidden">
+    <button class="tab tab-active" data-tab="partidas">1 · Partidas y Depreciación</button>
+    <button class="tab" data-tab="balance">1 · Balance General</button>
+    <button class="tab" data-tab="resultados">1 · Estado de Resultados</button>
+    <button class="tab" data-tab="indices">2 · Índices Financieros</button>
+    <button class="tab" data-tab="modelo">3 · Modelo Discriminante</button>
+  </nav>
+
+  <!-- ============ FASE 1: PARTIDAS ============ -->
+  <section id="panel-partidas" class="panel hidden">
+    <div class="panel-head">
+      <h2>Clasificación dinámica de partidas</h2>
+      <p>Cada cuenta fue clasificada según su grado de liquidez o exigibilidad. Los saldos y los parámetros de
+         depreciación son editables: cualquier cambio recalcula el balance, los índices y el modelo Z en tiempo real.</p>
+    </div>
+    <div class="switches">
+      <label class="switch"><input type="checkbox" id="opt-depreciacion"> <span>Aplicar depreciación calculada al balance</span></label>
+      <label class="switch"><input type="checkbox" id="opt-utilidad"> <span>Acumular utilidad del ejercicio al patrimonio</span></label>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table" id="tabla-partidas"></table>
+    </div>
+    <div class="panel-head">
+      <h2>Cédula de depreciación — método de línea recta</h2>
+      <p>Cuota anual = (Costo − Valor residual) ÷ Vida útil. El <strong>Terreno</strong> es el único activo fijo
+         que nunca se deprecia.</p>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table" id="tabla-depreciacion"></table>
+    </div>
+  </section>
+
+  <!-- ============ FASE 1: BALANCE ============ -->
+  <section id="panel-balance" class="panel hidden">
+    <div class="panel-head">
+      <h2>Balance General estructurado</h2>
+      <p>Validación matemática de la ecuación de equilibrio: Activo = Pasivo + Patrimonio.</p>
+    </div>
+    <div id="balance-contenido" class="balance-grid"></div>
+    <div class="chart-row">
+      <div class="card chart-card"><h3>Estructura del Activo</h3><canvas id="chart-activo"></canvas></div>
+      <div class="card chart-card"><h3>Financiamiento: Pasivo vs. Patrimonio</h3><canvas id="chart-financiamiento"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ============ FASE 1: RESULTADOS ============ -->
+  <section id="panel-resultados" class="panel hidden">
+    <div class="panel-head">
+      <h2>Estado de Resultados</h2>
+      <p>Construido con las cuentas de ingresos, costos y gastos detectadas en el archivo.</p>
+    </div>
+    <div id="resultados-contenido"></div>
+  </section>
+
+  <!-- ============ FASE 2: ÍNDICES ============ -->
+  <section id="panel-indices" class="panel hidden">
+    <div class="panel-head">
+      <h2>Panel de razones financieras</h2>
+      <p>Cuatro grupos calculados automáticamente: liquidez, apalancamiento, actividad y rentabilidad.</p>
+    </div>
+    <div id="indices-contenido"></div>
+    <div class="chart-row">
+      <div class="card chart-card"><h3>Liquidez y apalancamiento (veces)</h3><canvas id="chart-ratios"></canvas></div>
+      <div class="card chart-card"><h3>Márgenes y rendimientos (%)</h3><canvas id="chart-rentabilidad"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ============ FASE 3: MODELO ============ -->
+  <section id="panel-modelo" class="panel hidden">
+    <div class="panel-head">
+      <h2>Análisis discriminante — Modelo de Evaluación de Créditos</h2>
+      <p>Z = 0.4 · X₁ + 0.6 · X₂, donde X₁ es la Razón Circulante y X₂ la Razón de Apalancamiento Interno.</p>
+    </div>
+    <div id="modelo-contenido"></div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <span>Finanzas para Ingenieros · Proyecto 3 · 8vo semestre Ingeniería en Informática</span>
+  <span class="muted">Procesamiento 100 % en el navegador: ningún dato contable sale del equipo.</span>
+</footer>
+
+<script src="js/sample-data.js?v=1.0"></script>
+<script src="js/csv-parser.js?v=1.0"></script>
+<script src="js/classifier.js?v=1.0"></script>
+<script src="js/statements.js?v=1.0"></script>
+<script src="js/ratios.js?v=1.0"></script>
+<script src="js/discriminant.js?v=1.0"></script>
+<script src="js/charts.js?v=1.0"></script>
+<script src="js/app.js?v=1.0"></script>
+</body>
+</html>
