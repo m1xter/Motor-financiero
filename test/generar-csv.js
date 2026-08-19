@@ -6,6 +6,7 @@ vm.createContext(s);
 vm.runInContext(fs.readFileSync(path.join(raiz, 'js/sample-data.js'), 'utf8'), s);
 
 const archivos = {
+  enunciado: 'ejemplo_enunciado.csv',
   solida: 'ejemplo_balance.csv',
   intermedia: 'ejemplo_intermedia.csv',
   riesgo: 'ejemplo_riesgo.csv',

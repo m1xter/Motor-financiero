@@ -87,28 +87,26 @@ const CsvParser = (() => {
     return negative ? -n : n;
   }
 
-  /* ---------- Diccionario de encabezados aceptados ---------- */
-  const HEADER_ALIASES = {
-    cuenta: ['cuenta', 'cuentas', 'nombre de la cuenta', 'nombre cuenta', 'descripcion', 'descripción',
-             'partida', 'concepto', 'detalle', 'rubro', 'item', 'nombre'],
-    saldo: ['saldo', 'saldos', 'monto', 'valor', 'importe', 'saldo final', 'saldo actual', 'total',
-            'costo', 'costo historico', 'costo de adquisicion', 'debe', 'bs', 'usd', 'cantidad'],
-    categoria: ['categoria', 'categoría', 'clasificacion', 'clasificación', 'tipo', 'grupo', 'naturaleza'],
-    vidaUtil: ['vida util', 'vida útil', 'vida util (anos)', 'vida', 'anos de vida util', 'años de vida útil',
-               'vida_util', 'vidautil', 'anos vida'],
-    residual: ['valor residual', 'residual', 'valor de salvamento', 'salvamento', 'valor de desecho', 'desecho'],
-    antiguedad: ['anos de uso', 'años de uso', 'antiguedad', 'antigüedad', 'anos transcurridos',
-                 'periodos depreciados', 'uso', 'anos_uso', 'edad']
-  };
+  /* ---------- Reconocimiento de encabezados ----------
+     Se evalúan en orden: el primer patrón que coincide decide el rol de la
+     columna. Los patrones específicos van antes que los genéricos para que
+     "tipo_saldo" se lea como categoría (y no como saldo) y "id_cuenta" se
+     descarte en lugar de tomarse como nombre de la cuenta. */
+  const HEADER_PATTERNS = [
+    { key: null, re: /^(id|ids|codigo|cod|nro|num|numero|no|linea|fila|ref|orden)\b/ },
+    { key: 'categoria', re: /(categoria|clasificacion|tipo|grupo|naturaleza|clase)/ },
+    { key: 'vidaUtil', re: /vida/ },
+    { key: 'residual', re: /(residual|salvamento|desecho|rescate)/ },
+    { key: 'antiguedad', re: /(anos? de uso|anos? uso|antiguedad|anos? transcurridos|periodos depreciados|edad|uso acumulado)/ },
+    { key: 'saldo', re: /(saldo|monto|importe|valor|costo|debe|cantidad|total|balance|bs|usd)/ },
+    { key: 'cuenta', re: /(cuenta|descripcion|nombre|concepto|partida|detalle|rubro|item|glosa)/ }
+  ];
 
   function matchHeader(header) {
-    const h = normalize(header);
+    const h = normalize(header).replace(/[_\-.]+/g, ' ').replace(/\s+/g, ' ').trim();
     if (!h) return null;
-    for (const [key, aliases] of Object.entries(HEADER_ALIASES)) {
-      if (aliases.some(a => h === normalize(a))) return key;
-    }
-    for (const [key, aliases] of Object.entries(HEADER_ALIASES)) {
-      if (aliases.some(a => h.includes(normalize(a)))) return key;
+    for (const { key, re } of HEADER_PATTERNS) {
+      if (re.test(h)) return key;   // key null => columna descartada (identificadores)
     }
     return null;
   }
@@ -135,6 +133,57 @@ const CsvParser = (() => {
       if (found.cuenta !== undefined && found.saldo !== undefined) {
         headerIndex = i; map = found; break;
       }
+    }
+
+    /* Verificación contra los datos: la columna de saldo debe contener
+       montos y la de cuenta texto. Si el encabezado engañó al mapeo, se
+       corrige observando el contenido real de las filas. */
+    if (headerIndex >= 0) {
+      const datos = rows.slice(headerIndex + 1).filter(r => r.length > 1);
+      const ancho = Math.max(...[rows[headerIndex], ...datos].map(r => r.length));
+      const proporcionNumerica = idx => {
+        if (idx === undefined) return 0;
+        const vals = datos.map(r => (r[idx] || '').trim()).filter(v => v);
+        if (!vals.length) return 0;
+        return vals.filter(v => parseAmount(v) !== null).length / vals.length;
+      };
+      const ocupadas = omitir => new Set(
+        Object.entries(map).filter(([k]) => k !== omitir).map(([, v]) => v)
+      );
+
+      if (proporcionNumerica(map.saldo) < 0.6) {
+        let mejor = -1, mejorProp = 0;
+        const usadas = ocupadas('saldo');
+        for (let c = 0; c < ancho; c++) {
+          if (usadas.has(c)) continue;
+          const p = proporcionNumerica(c);
+          if (p > mejorProp) { mejorProp = p; mejor = c; }
+        }
+        if (mejor >= 0 && mejorProp >= 0.6) {
+          const antes = rows[headerIndex][map.saldo];
+          if (map.categoria === undefined && map.saldo !== undefined) map.categoria = map.saldo;
+          map.saldo = mejor;
+          warnings.push(`La columna "${antes}" no contiene montos; se usó "${rows[headerIndex][mejor]}" como saldo.`);
+        }
+      }
+
+      if (proporcionNumerica(map.cuenta) > 0.8) {
+        let mejor = -1, mejorProp = 1;
+        const usadas = ocupadas('cuenta');
+        for (let c = 0; c < ancho; c++) {
+          if (usadas.has(c)) continue;
+          const p = proporcionNumerica(c);
+          const conTexto = datos.some(r => (r[c] || '').trim());
+          if (conTexto && p < mejorProp) { mejorProp = p; mejor = c; }
+        }
+        if (mejor >= 0 && mejorProp < 0.5) {
+          const antes = rows[headerIndex][map.cuenta];
+          map.cuenta = mejor;
+          warnings.push(`La columna "${antes}" contiene identificadores; se usó "${rows[headerIndex][mejor]}" como nombre de la cuenta.`);
+        }
+      }
+
+      if (map.cuenta === undefined || map.saldo === undefined) headerIndex = -1;
     }
 
     /* Si no hay encabezado reconocible se asume: col 0 = cuenta, última numérica = saldo */
@@ -173,6 +222,9 @@ const CsvParser = (() => {
 
     return {
       delimiter,
+      mapa: headerIndex >= 0
+        ? Object.fromEntries(Object.entries(map).map(([k, i]) => [k, rows[headerIndex][i]]))
+        : {},
       columnas: Object.keys(map),
       entries,
       warnings

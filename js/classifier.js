@@ -87,20 +87,25 @@ const Classifier = (() => {
 
   /* Alias directos escritos en la columna "categoría/tipo" del CSV */
   const ALIAS_CATEGORIA = {
-    ACTIVO_CORRIENTE: ['activo corriente', 'activo circulante', 'ac', 'corriente activo'],
-    ACTIVO_NO_CORRIENTE: ['activo no corriente', 'activo fijo', 'anc', 'activo no circulante', 'propiedad planta y equipo'],
-    PASIVO_CORRIENTE: ['pasivo corriente', 'pasivo circulante', 'pc', 'pasivo a corto plazo'],
-    PASIVO_NO_CORRIENTE: ['pasivo no corriente', 'pasivo a largo plazo', 'pnc', 'pasivo no circulante'],
-    PATRIMONIO: ['patrimonio', 'capital contable', 'patrimonio neto'],
-    INGRESO: ['ingreso', 'ingresos', 'venta', 'ventas'],
+    ACTIVO_NO_CORRIENTE: ['activo no corriente', 'activo fijo', 'anc', 'activo no circulante', 'propiedad planta y equipo',
+                          'inversion', 'inversiones', 'bien de uso', 'bienes de uso', 'depreciable', 'inmovilizado'],
+    PASIVO_NO_CORRIENTE: ['pasivo no corriente', 'pasivo a largo plazo', 'pnc', 'pasivo no circulante',
+                          'deuda largo', 'deuda a largo', 'deuda largo plazo', 'pasivo largo'],
+    PASIVO_CORRIENTE: ['pasivo corriente', 'pasivo circulante', 'pc', 'pasivo a corto plazo',
+                       'deuda corto', 'deuda a corto', 'deuda corto plazo', 'pasivo corto', 'deuda', 'obligacion', 'por pagar'],
+    ACTIVO_CORRIENTE: ['activo corriente', 'activo circulante', 'ac', 'corriente activo',
+                       'liquidez', 'disponible', 'almacen', 'inventario', 'existencia',
+                       'derecho cobro', 'derecho de cobro', 'por cobrar', 'realizable', 'exigible'],
+    PATRIMONIO: ['patrimonio', 'capital contable', 'patrimonio neto', 'propietarios', 'socios', 'accionistas', 'capital propio'],
+    GASTO_FINANCIERO: ['gasto financiero', 'gastos financieros', 'financiero'],
+    IMPUESTO: ['impuesto', 'islr'],
     COSTO: ['costo', 'costos', 'costo de ventas'],
-    GASTO_OPERATIVO: ['gasto', 'gastos', 'gasto operativo', 'gastos operativos'],
-    GASTO_FINANCIERO: ['gasto financiero', 'gastos financieros'],
-    IMPUESTO: ['impuesto', 'islr']
+    INGRESO: ['ingreso', 'ingresos', 'venta', 'ventas'],
+    GASTO_OPERATIVO: ['gasto', 'gastos', 'gasto operativo', 'gastos operativos', 'egreso', 'egresos']
   };
 
   function porCategoriaCsv(texto) {
-    const t = N(texto);
+    const t = N(texto).replace(/[_\-.]+/g, ' ').replace(/\s+/g, ' ').trim();
     if (!t) return null;
     for (const [grupo, alias] of Object.entries(ALIAS_CATEGORIA)) {
       if (alias.some(a => t === a)) return grupo;
@@ -110,6 +115,16 @@ const Classifier = (() => {
     }
     return null;
   }
+
+  /* Clase contable a la que pertenece cada grupo (para resolver discrepancias) */
+  const CLASES = {
+    ACTIVO_CORRIENTE: 'activo', ACTIVO_NO_CORRIENTE: 'activo',
+    PASIVO_CORRIENTE: 'pasivo', PASIVO_NO_CORRIENTE: 'pasivo',
+    PATRIMONIO: 'patrimonio',
+    INGRESO: 'resultado', COSTO: 'resultado', GASTO_OPERATIVO: 'resultado',
+    GASTO_FINANCIERO: 'resultado', IMPUESTO: 'resultado'
+  };
+  const clase = g => CLASES[g] || 'otro';
 
   /* Ajuste por plazo declarado en el propio nombre de la cuenta */
   function ajustarPorPlazo(grupo, nombreNorm) {
@@ -140,9 +155,21 @@ const Classifier = (() => {
     const regla = buscarRegla(nombreNorm);
     const forzadoCsv = porCategoriaCsv(entry.categoriaCsv);
 
-    let grupo = forzadoCsv || (regla ? regla.grupo : 'SIN_CLASIFICAR');
-    let origen = forzadoCsv ? (regla ? 'csv+diccionario' : 'columna categoría del CSV')
-                            : (regla ? 'diccionario de cuentas' : 'no reconocida');
+    /* Cuando el nombre y la columna de categoría discrepan: dentro de la misma
+       clase contable manda el diccionario (es más específico: "Costo de Ventas"
+       marcado como "Egreso" sigue siendo costo); si discrepan de clase, manda la
+       categoría declarada en el archivo. */
+    let grupo, origen;
+    if (regla && forzadoCsv) {
+      grupo = clase(regla.grupo) === clase(forzadoCsv) ? regla.grupo : forzadoCsv;
+      origen = 'csv+diccionario';
+    } else if (regla) {
+      grupo = regla.grupo; origen = 'diccionario de cuentas';
+    } else if (forzadoCsv) {
+      grupo = forzadoCsv; origen = 'columna categoría del CSV';
+    } else {
+      grupo = 'SIN_CLASIFICAR'; origen = 'no reconocida';
+    }
 
     if (grupo !== 'SIN_CLASIFICAR') grupo = ajustarPorPlazo(grupo, nombreNorm);
 

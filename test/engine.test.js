@@ -51,6 +51,33 @@ console.log('\n2) Detección de delimitadores y encabezados');
 });
 check('fila TOTAL ACTIVO ignorada', !CsvParser.parse(SampleData.desordenado.csv).entries.some(e => /total/i.test(e.nombre)));
 
+/* Archivo del enunciado: id_cuenta, descripcion_cuenta, tipo_saldo, monto, vida_util_anios */
+const enun = CsvParser.parse(SampleData.enunciado.csv);
+check('columna id_cuenta descartada como nombre', enun.mapa.cuenta === 'descripcion_cuenta');
+check('columna monto reconocida como saldo', enun.mapa.saldo === 'monto');
+check('columna tipo_saldo reconocida como categoría', enun.mapa.categoria === 'tipo_saldo');
+check('columna vida_util_anios reconocida como vida útil', enun.mapa.vidaUtil === 'vida_util_anios');
+check('las 14 cuentas del enunciado se leyeron', enun.entries.length === 14, `leídas ${enun.entries.length}`);
+const enunciado = motor(SampleData.enunciado.csv);
+const gEnun = nombre => enunciado.cuentas.find(c => CsvParser.normalize(c.nombre).includes(nombre)).grupo;
+check('categoría Liquidez → Activo Corriente', gEnun('efectivo en caja') === 'ACTIVO_CORRIENTE');
+check('categoría Almacen → Activo Corriente', gEnun('inventario de componentes') === 'ACTIVO_CORRIENTE');
+check('categoría Derecho_Cobro → Activo Corriente', gEnun('cuentas por cobrar') === 'ACTIVO_CORRIENTE');
+check('categoría Inversion → Activo No Corriente', gEnun('maquinaria y equipos') === 'ACTIVO_NO_CORRIENTE');
+check('categoría Deuda_Corto → Pasivo Corriente', gEnun('prestamo bancario a 6 meses') === 'PASIVO_CORRIENTE');
+check('categoría Deuda_Largo → Pasivo No Corriente', gEnun('hipoteca') === 'PASIVO_NO_CORRIENTE');
+check('categoría Propietarios → Patrimonio', gEnun('capital social aportado') === 'PATRIMONIO');
+check('Egreso + nombre "Costo de Ventas" → Costo (gana el diccionario)', gEnun('costo de ventas') === 'COSTO');
+check('Egreso genérico → Gastos Operativos', gEnun('gastos generales') === 'GASTO_OPERATIVO');
+check('ninguna cuenta del enunciado sin clasificar', !enunciado.cuentas.some(c => c.grupo === 'SIN_CLASIFICAR'));
+const terrenoEnun = enunciado.cuentas.find(c => c.esTerreno);
+check('Terreno (Sede Principal) no se deprecia', terrenoEnun.depreciacionAnual === 0 && terrenoEnun.depreciacionAcumulada === 0);
+check('Maquinaria del enunciado: 80000/10 = 8000 anual',
+  cerca(enunciado.cuentas.find(c => /maquinaria/i.test(c.nombre)).depreciacionAnual, 8000));
+check('activo total del enunciado = 300000', cerca(enunciado.estados.balance.activoTotal, 300000));
+check('pasivo total del enunciado = 120000', cerca(enunciado.estados.balance.pasivoTotal, 120000));
+check('el enunciado no cuadra y se reporta el descuadre', !enunciado.estados.validacion.cuadra);
+
 /* ---------------- 3. Clasificación ---------------- */
 console.log('\n3) Clasificación por liquidez y exigibilidad');
 const solida = motor(SampleData.solida.csv);

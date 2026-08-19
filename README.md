@@ -29,9 +29,12 @@ El lector tolera:
 - Campos entre comillas y comillas escapadas.
 - Montos en formato latino `1.234.567,89` y anglosajón `1,234,567.89`, con `$`, `Bs.`, paréntesis para negativos.
 - Encabezados ausentes o con nombres alternativos, y filas de totales (se ignoran y se recalculan internamente).
+- Columnas de identificadores (`id_cuenta`, `codigo`, `nro`) que se descartan, y encabezados como `descripcion_cuenta`, `tipo_saldo`, `monto`, `vida_util_anios`. Si el encabezado engaña al mapeo, se corrige revisando el contenido real de las filas.
+- Vocabulario libre en la columna de categoría: `Liquidez`, `Almacen`, `Derecho_Cobro`, `Inversion`, `Deuda_Corto`, `Deuda_Largo`, `Propietarios`, `Ingreso`, `Egreso`. Cuando el nombre de la cuenta es más específico que la categoría (p. ej. `Costo de Ventas` marcado como `Egreso`), manda el nombre.
 
 Plantillas listas para la demostración en `data/`:
 
+- `ejemplo_enunciado.csv` — datos de prueba del enunciado (encabezados propios y **descuadre**)
 - `ejemplo_balance.csv` — empresa sólida → **Crédito excelente**
 - `ejemplo_intermedia.csv` — empresa intermedia → **Crédito de riesgo normal**
 - `ejemplo_riesgo.csv` — empresa apalancada con pérdida → **Crédito malo**

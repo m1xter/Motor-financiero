@@ -6,6 +6,27 @@
    ============================================================ */
 
 const SampleData = {
+  /* Archivo de prueba entregado con el enunciado: encabezados propios
+     (id_cuenta, descripcion_cuenta, tipo_saldo, monto, vida_util_anios). */
+  enunciado: {
+    nombre: 'Datos de prueba del enunciado',
+    csv: `id_cuenta,descripcion_cuenta,tipo_saldo,monto,vida_util_anios
+101,Ventas de Software,Ingreso,250000,
+102,Maquinaria y Equipos,Inversion,80000,10
+103,Cuentas por Pagar (Proveedores),Deuda_Corto,35000,
+104,Efectivo en Caja y Bancos,Liquidez,45000,
+105,Costo de Ventas,Egreso,120000,
+106,Prestamo Bancario a 6 meses,Deuda_Corto,15000,
+107,Inventario de Componentes,Almacen,25000,
+108,Terreno (Sede Principal),Inversion,120000,
+109,Capital Social Aportado,Propietarios,100000,
+110,Cuentas por Cobrar (Clientes),Derecho_Cobro,30000,
+111,Hipoteca Inmobiliaria a 10 anos,Deuda_Largo,60000,
+112,Gastos Generales y Administrativos,Egreso,40000,
+113,Utilidades Acumuladas,Propietarios,20000,
+114,Impuestos por Pagar,Deuda_Corto,10000,`
+  },
+
   solida: {
     nombre: 'Distribuidora Andina C.A. (empresa sólida)',
     csv: `Cuenta;Saldo;Categoria;Vida Util;Valor Residual;Anos de Uso
