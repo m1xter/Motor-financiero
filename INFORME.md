@@ -2,7 +2,7 @@
 
 Proyecto 3 · Finanzas para Ingenieros · 8vo semestre de Ingeniería en Informática
 
-Repositorio: <https://github.com/m1xter/Motor-financiero>
+Aplicación en línea: <https://motor-financiero-sandy.vercel.app/>
 
 ---
 
